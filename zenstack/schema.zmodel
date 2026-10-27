@@ -1,0 +1,77 @@
+// This is a sample model to get you started.
+
+/// A sample data source using local sqlite db.
+datasource db {
+    provider = 'mysql'
+    url      = env('DATABASE_URL')
+}
+
+/// User model
+// model User {
+//     id       String @id @default(cuid())
+//     email    String @unique @email @length(6, 32)
+//     posts    Post[]
+// }
+
+/// Clue model
+model CrypticClue {
+    id             String    @id @default(cuid())
+    date           DateTime? @unique
+    author         String
+
+    clue           String
+    answer         String
+
+
+    letterHintOrder       String
+
+    createdAt      DateTime  @default(now())
+    updatedAt      DateTime  @updatedAt
+
+    solves         Solve[]
+    hints         Hint[]
+}
+
+enum HintType {
+    definition
+    indicator
+    fodder
+    other
+}
+
+model Hint {
+    id        String   @id @default(cuid())
+    clue      CrypticClue     @relation(fields: [clueId], references: [id])
+    clueId    String
+    type      HintType
+    name      String
+    text      String
+    part      String
+
+    HintUsed  HintUsed[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model HintUsed {
+    solve     Solve   @relation(fields: [solveId], references: [id])
+    solveId   String
+    hint      Hint    @relation(fields: [hintId], references: [id])
+    hintId    String
+
+    @@id([solveId, hintId])
+}
+
+model Solve {
+    id         String   @id @default(cuid())
+    clue       CrypticClue     @relation(fields: [clueId], references: [id])
+    clueId     String
+    ip         String
+    ua         String
+
+    hintsUsed HintUsed[]
+    letterHintsUsed    Int
+
+    createdAt  DateTime @default(now())
+}
