@@ -34,7 +34,7 @@
 	}
 
 	.content {
-		max-width: 500px;
+		max-width: var(--max-page-width);
 		margin: 0 auto;
 		padding: 1rem;
 	}

@@ -5,11 +5,15 @@
 
 /* eslint-disable */
 
-import { type SchemaType as $Schema } from "./schema";
+import { schema as $schema, type SchemaType as $Schema } from "./schema";
 import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
 /**
  * User model
  * Clue model
  */
-export type Clue = $ModelResult<$Schema, "Clue">;
+export type CrypticClue = $ModelResult<$Schema, "CrypticClue">;
+export type Hint = $ModelResult<$Schema, "Hint">;
+export type HintUsed = $ModelResult<$Schema, "HintUsed">;
 export type Solve = $ModelResult<$Schema, "Solve">;
+export const HintType = $schema.enums.HintType.values;
+export type HintType = (typeof HintType)[keyof typeof HintType];

@@ -11,8 +11,8 @@ export class SchemaType implements SchemaDef {
         type: "mysql"
     } as const;
     models = {
-        Clue: {
-            name: "Clue",
+        CrypticClue: {
+            name: "CrypticClue",
             fields: {
                 id: {
                     name: "id",
@@ -40,32 +40,8 @@ export class SchemaType implements SchemaDef {
                     name: "answer",
                     type: "String"
                 },
-                definitionText: {
-                    name: "definitionText",
-                    type: "String"
-                },
-                definitionPart: {
-                    name: "definitionPart",
-                    type: "String"
-                },
-                indicatorText: {
-                    name: "indicatorText",
-                    type: "String"
-                },
-                indicatorPart: {
-                    name: "indicatorPart",
-                    type: "String"
-                },
-                fodderText: {
-                    name: "fodderText",
-                    type: "String"
-                },
-                fodderPart: {
-                    name: "fodderPart",
-                    type: "String"
-                },
-                letters: {
-                    name: "letters",
+                letterHintOrder: {
+                    name: "letterHintOrder",
                     type: "String"
                 },
                 createdAt: {
@@ -85,12 +61,121 @@ export class SchemaType implements SchemaDef {
                     type: "Solve",
                     array: true,
                     relation: { opposite: "clue" }
+                },
+                hints: {
+                    name: "hints",
+                    type: "Hint",
+                    array: true,
+                    relation: { opposite: "clue" }
                 }
             },
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" },
                 date: { type: "DateTime" }
+            }
+        },
+        Hint: {
+            name: "Hint",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
+                },
+                clue: {
+                    name: "clue",
+                    type: "CrypticClue",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("clueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "hints", fields: ["clueId"], references: ["id"] }
+                },
+                clueId: {
+                    name: "clueId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "clue"
+                    ] as readonly string[]
+                },
+                type: {
+                    name: "type",
+                    type: "HintType"
+                },
+                name: {
+                    name: "name",
+                    type: "String"
+                },
+                text: {
+                    name: "text",
+                    type: "String"
+                },
+                part: {
+                    name: "part",
+                    type: "String"
+                },
+                HintUsed: {
+                    name: "HintUsed",
+                    type: "HintUsed",
+                    array: true,
+                    relation: { opposite: "hint" }
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                },
+                updatedAt: {
+                    name: "updatedAt",
+                    type: "DateTime",
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" }
+            }
+        },
+        HintUsed: {
+            name: "HintUsed",
+            fields: {
+                solve: {
+                    name: "solve",
+                    type: "Solve",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("solveId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "hintsUsed", fields: ["solveId"], references: ["id"] }
+                },
+                solveId: {
+                    name: "solveId",
+                    type: "String",
+                    id: true,
+                    foreignKeyFor: [
+                        "solve"
+                    ] as readonly string[]
+                },
+                hint: {
+                    name: "hint",
+                    type: "Hint",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("hintId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "HintUsed", fields: ["hintId"], references: ["id"] }
+                },
+                hintId: {
+                    name: "hintId",
+                    type: "String",
+                    id: true,
+                    foreignKeyFor: [
+                        "hint"
+                    ] as readonly string[]
+                }
+            },
+            attributes: [
+                { name: "@@id", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("solveId"), ExpressionUtils.field("hintId")]) }] }
+            ] as readonly AttributeApplication[],
+            idFields: ["solveId", "hintId"],
+            uniqueFields: {
+                solveId_hintId: { solveId: { type: "String" }, hintId: { type: "String" } }
             }
         },
         Solve: {
@@ -105,7 +190,7 @@ export class SchemaType implements SchemaDef {
                 },
                 clue: {
                     name: "clue",
-                    type: "Clue",
+                    type: "CrypticClue",
                     attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("clueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
                     relation: { opposite: "solves", fields: ["clueId"], references: ["id"] }
                 },
@@ -124,20 +209,14 @@ export class SchemaType implements SchemaDef {
                     name: "ua",
                     type: "String"
                 },
-                definition: {
-                    name: "definition",
-                    type: "Boolean"
+                hintsUsed: {
+                    name: "hintsUsed",
+                    type: "HintUsed",
+                    array: true,
+                    relation: { opposite: "solve" }
                 },
-                indicator: {
-                    name: "indicator",
-                    type: "Boolean"
-                },
-                fodder: {
-                    name: "fodder",
-                    type: "Boolean"
-                },
-                letters: {
-                    name: "letters",
+                letterHintsUsed: {
+                    name: "letterHintsUsed",
                     type: "Int"
                 },
                 createdAt: {
@@ -150,6 +229,17 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" }
+            }
+        }
+    } as const;
+    enums = {
+        HintType: {
+            name: "HintType",
+            values: {
+                definition: "definition",
+                indicator: "indicator",
+                fodder: "fodder",
+                other: "other"
             }
         }
     } as const;

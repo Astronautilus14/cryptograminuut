@@ -38,6 +38,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@hiseb/confetti": "^2.2.0",
 		"@zenstackhq/orm": "^3.9.8",
 		"@zenstackhq/schema": "^3.9.8",
 		"mysql2": "^3.24.6"

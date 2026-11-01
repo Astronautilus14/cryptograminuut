@@ -8,3 +8,7 @@
 body {
 	background-color: #ffdc92;
 }
+
+:root {
+	--max-page-width: 700px;
+}

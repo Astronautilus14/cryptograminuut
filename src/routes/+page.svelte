@@ -1,38 +1,83 @@
 <script lang="ts">
+	import Modal from '#lib/components/Modal.svelte';
+	import VirtualKeyboard from '#lib/components/VirtualKeyboard.svelte';
 	import type { PageProps } from './$types';
+	import confetti from '@hiseb/confetti';
 
 	let { data }: PageProps = $props();
 
 	let selected = $state(0);
-	let input = $state<string[]>(Array.from({ length: data.answer.length }, () => ' '));
+	let input = $state<string[]>([]);
 
-	let invisibleInput = $state<HTMLInputElement | null>(null);
+	let showHints = $state(false);
+	let hintsUsed = $state<string[]>([]);
+
+	let incorrect = $state(false);
+	let completed = $state(false);
+
+	$effect(() => {
+		const nextLength = data?.answer?.length ?? 0;
+
+		if (input.length !== nextLength) {
+			input = Array.from({ length: nextLength }, (_, i) => input[i] ?? ' ');
+		}
+	});
 
 	function handleKeydown(event: KeyboardEvent) {
+		if (completed) return;
 		if (selected >= data.answer.length) return;
 
 		if (event.key === 'Backspace') {
 			input[selected] = ' ';
 			selected = Math.max(selected - 1, 0);
-			return;
-		}
-
-		if (event.key === 'ArrowLeft') {
+		} else if (event.key === 'ArrowLeft') {
 			selected = Math.max(selected - 1, 0);
-			return;
-		}
-
-		if (event.key === 'ArrowRight' || event.key === ' ') {
+		} else if (event.key === 'ArrowRight' || event.key === ' ') {
 			selected = Math.min(selected + 1, data.answer.length - 1);
-			return;
+		} else if (event.key === 'Enter') {
+			onCheck();
 		}
 
 		// Check if key is a letter
 		if (!/^[a-zA-Z]$/.test(event.key)) return;
 
-		input[selected] = event.key.length === 1 ? event.key : ' ';
+		input[selected] = event.key.toUpperCase();
 		selected = Math.min(selected + 1, data.answer.length - 1);
 	}
+
+	$effect(() => {
+		if (incorrect) {
+			const timeout = setTimeout(() => {
+				incorrect = false;
+			}, 400);
+
+			return () => clearTimeout(timeout);
+		}
+	});
+
+	function onCheck() {
+		const userInput = input.join('').toUpperCase();
+		const correctAnswer = data.answer.toUpperCase();
+
+		if (userInput === correctAnswer) {
+			completed = true;
+			selected = -1;
+			confetti();
+		} else {
+			incorrect = true;
+		}
+	}
+
+	let answerLength = $derived(
+		data.answer
+			.split(' ')
+			.map((s: string) => s.length)
+			.join(',')
+	);
+
+	let whatsappUri = $derived(
+		`https://wa.me/?text=${encodeURIComponent(`Ik heb de cryptograminuut opgelost met ${hintsUsed.length} hints!\n${data.clue} (${answerLength}).\nProbeer het zelf: https://cryptograminuut.nautdevroome.nl/`)}`
+	);
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -42,33 +87,62 @@
 </div>
 
 <div class="clue">
-	<p>{data.clue}</p>
+	<p>{data.clue} ({answerLength})</p>
 </div>
 
-<div class="input">
+<div class={`input ${incorrect ? 'incorrect' : ''}`}>
 	<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 	{#each data.answer as _, i (i)}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<div
-			class={`letter ${selected === i ? 'selected' : ''}`}
-			onclick={() => {
-				selected = i;
-				invisibleInput?.focus();
-			}}
-		>
+		<div class={`letter ${selected === i ? 'selected' : ''}`} onclick={() => (selected = i)}>
 			<p>{i < input.length ? input[i] : ''}</p>
 		</div>
 	{/each}
 </div>
 
-<div class="buttons">
-	<button>Check</button>
-	<button>Hints</button>
-</div>
+{#if completed}
+	<div class="completed">
+		<p>Hints gebruikt: {hintsUsed.length}</p>
+		{#each data.hints as hint (hint.id)}
+			<div>
+				<h3>{hint.name}</h3>
+				<p>{hint.text}</p>
+			</div>
+		{/each}
+		<button onclick={() => window.open(whatsappUri, '_blank')}>Delen</button>
+	</div>
+{:else}
+	<div class="buttons">
+		<button onclick={onCheck}>Check</button>
+		<button onclick={() => (showHints = true)}>Hints</button>
+	</div>
+{/if}
 
-<!-- svelte-ignore a11y_autofocus -->
-<input autofocus style="width: 0px; height: 0px; opacity: 0;" bind:this={invisibleInput} />
+{#if !completed}
+	<VirtualKeyboard />
+{/if}
+
+<Modal bind:showModal={showHints}>
+	<div class="hints">
+		{#each data.hints as hint (hint.id)}
+			<div class="hint">
+				{#if !hintsUsed.includes(hint.id)}
+					<button
+						onclick={() => {
+							hintsUsed = [...hintsUsed, hint.id];
+						}}
+					>
+						{hint.name}
+					</button>
+				{:else}
+					<h3>{hint.name}</h3>
+					<p>{hint.text}</p>
+				{/if}
+			</div>
+		{/each}
+	</div>
+</Modal>
 
 <style>
 	.author {
@@ -94,6 +168,28 @@
 		margin-top: 2rem;
 		display: flex;
 		justify-content: center;
+	}
+
+	.input.incorrect {
+		animation: shake 0.4s;
+	}
+
+	@keyframes shake {
+		0% {
+			transform: translateX(0);
+		}
+		25% {
+			transform: translateX(-5px);
+		}
+		50% {
+			transform: translateX(5px);
+		}
+		75% {
+			transform: translateX(-5px);
+		}
+		100% {
+			transform: translateX(0);
+		}
 	}
 
 	.input p {
@@ -133,7 +229,7 @@
 		gap: 1rem;
 	}
 
-	.buttons button {
+	button {
 		background: #ffefcd;
 		border: 3px solid black;
 		border-radius: 10px;
@@ -142,7 +238,29 @@
 		cursor: pointer;
 	}
 
-	.buttons button:hover {
+	button:hover {
+		outline: 3px solid #f5c55e;
+	}
+
+	.completed {
+		background: #ffefcd;
+		border: 3px solid black;
+		border-radius: 20px;
+		padding: 1rem;
+		margin-top: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.completed button {
 		background: white;
+		width: fit-content;
+	}
+
+	.hints {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 </style>
