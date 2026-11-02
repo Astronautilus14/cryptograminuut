@@ -11,6 +11,7 @@
 
 	let showHints = $state(false);
 	let hintsUsed = $state<string[]>([]);
+	let letterHintsUsed = $state<number[]>([]);
 
 	let incorrect = $state(false);
 	let completed = $state(false);
@@ -75,9 +76,24 @@
 			.join(',')
 	);
 
+	let totalHintsUsed = $derived(hintsUsed.length + letterHintsUsed.length);
+
 	let whatsappUri = $derived(
-		`https://wa.me/?text=${encodeURIComponent(`Ik heb de cryptograminuut opgelost met ${hintsUsed.length} hints!\n${data.clue} (${answerLength}).\nProbeer het zelf: https://cryptograminuut.nautdevroome.nl/`)}`
+		`https://wa.me/?text=${encodeURIComponent(`Ik heb de cryptograminuut opgelost met ${totalHintsUsed} hint${totalHintsUsed == 1 ? '' : 's'}!\n🧩🧩🧩\n${data.clue} (${answerLength})\n🧩🧩🧩\nProbeer het zelf🤔:\nhttps://cryptograminuut.nautdevroome.nl/`)}`
 	);
+
+	function onLetterHint() {
+		const order = data.letterHintOrder.split(',').map(Number);
+		if (letterHintsUsed.length >= order.length) return;
+		const nextLetterIdx = order[letterHintsUsed.length];
+
+		if (nextLetterIdx === -1) return;
+
+		input[nextLetterIdx] = data.answer[nextLetterIdx];
+		letterHintsUsed = [...letterHintsUsed, nextLetterIdx];
+
+		showHints = false;
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -96,14 +112,18 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div class={`letter ${selected === i ? 'selected' : ''}`} onclick={() => (selected = i)}>
-			<p>{i < input.length ? input[i] : ''}</p>
+			{#if letterHintsUsed.includes(i)}
+				<p>{data.answer[i].toUpperCase()}</p>
+			{:else}
+				<p>{i < input.length ? input[i] : ''}</p>
+			{/if}
 		</div>
 	{/each}
 </div>
 
 {#if completed}
 	<div class="completed">
-		<p>Hints gebruikt: {hintsUsed.length}</p>
+		<p>Hints gebruikt: {totalHintsUsed}</p>
 		{#each data.hints as hint (hint.id)}
 			<div>
 				<h3>{hint.name}</h3>
@@ -141,6 +161,14 @@
 				{/if}
 			</div>
 		{/each}
+		<div class="hint">
+			<button
+				onclick={onLetterHint}
+				disabled={letterHintsUsed.length >= data.letterHintOrder.split(',').length}
+			>
+				Letter
+			</button>
+		</div>
 	</div>
 </Modal>
 
@@ -236,6 +264,11 @@
 		padding: 0.5rem 1rem;
 		font-size: 1.5rem;
 		cursor: pointer;
+	}
+
+	button:disabled {
+		outline: none !important;
+		cursor: not-allowed;
 	}
 
 	button:hover {
