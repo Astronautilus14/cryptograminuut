@@ -1,7 +1,7 @@
 import { db } from '#lib/server/db.ts';
-import type { PageLoad } from './$types';
+import type { PageServerLoad } from './$types';
 
-export const load = (async () => {
+export const load: PageServerLoad = async () => {
 	let clue = await db.crypticClue.findUnique({
 		where: {
 			date: new Date(new Date().toISOString().split('T')[0])
@@ -9,11 +9,7 @@ export const load = (async () => {
 	});
 
 	if (!clue) {
-		clue = await db.crypticClue.findFirst({
-			include: {
-				hints: {}
-			}
-		});
+		clue = await db.crypticClue.findFirst();
 	}
 
 	if (!clue) {
@@ -26,5 +22,5 @@ export const load = (async () => {
 		}
 	});
 
-	return { ...clue, hints };
-}) satisfies PageLoad;
+	return { clue, hints };
+};
