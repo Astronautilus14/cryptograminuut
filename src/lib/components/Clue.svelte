@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { browser } from '$app/env';
 	import Modal from '#lib/components/Modal.svelte';
 	import VirtualKeyboard from '#lib/components/VirtualKeyboard.svelte';
 	import confetti from '@hiseb/confetti';
-	import type { CrypticClue, Hint, HintType } from '../../../zenstack/models';
+	import type { CrypticClue, Hint } from '../../../zenstack/models';
 
 	let { clue, hints, isDaily }: { clue: CrypticClue; hints: Hint[]; isDaily: boolean } = $props();
 
@@ -10,20 +11,27 @@
 	let input = $state<string[]>([]);
 
 	let showHints = $state(false);
-	let hintsUsed = $state<string[]>([]);
-	let letterHintsUsed = $state<number[]>([]);
+
+	let localStorageID = $derived(isDaily ? new Date().toISOString().split('T')[0] : clue.id);
+
+	let hintsUsed = $derived<string[]>(
+		browser ? (localStorage.getItem(`hintsUsed-${localStorageID}`)?.split(',') ?? []) : []
+	);
+
+	let letterHintsUsed = $derived<number[]>(
+		browser
+			? (localStorage.getItem(`letterHintsUsed-${localStorageID}`)?.split(',').map(Number) ?? [])
+			: []
+	);
 
 	let incorrect = $state(false);
 	let completed = $state(false);
-
-	let highlights = $state<(HintType | null)[]>([]);
 
 	$effect(() => {
 		const nextLength = clue?.answer?.length ?? 0;
 
 		if (input.length !== nextLength) {
 			input = Array.from({ length: nextLength }, (_, i) => input[i] ?? ' ');
-			highlights = Array.from({ length: nextLength }, (_, i) => highlights[i] ?? null);
 		}
 	});
 
@@ -94,6 +102,7 @@
 
 		input[nextLetterIdx] = clue.answer[nextLetterIdx];
 		letterHintsUsed = [...letterHintsUsed, nextLetterIdx];
+		localStorage.setItem(`letterHintsUsed-${localStorageID}`, letterHintsUsed.join(','));
 
 		showHints = false;
 	}
@@ -104,14 +113,20 @@
 		if (!hint) return;
 
 		hintsUsed = [...hintsUsed, id];
+		localStorage.setItem(`hintsUsed-${localStorageID}`, hintsUsed.join(','));
+	}
 
-		const ranges = hint.part.split(';');
-		for (const range of ranges) {
-			const [start, end] = range.split(',').map(Number);
-			for (let i = start; i <= end; i++) {
-				highlights[i] = hint.type;
+	function getHighlight(idx: number) {
+		for (const hint of hints) {
+			if (!hintsUsed.includes(hint.id)) continue;
+			for (const part of hint.part.split(';')) {
+				const [start, end] = part.split(',').map(Number);
+				if (idx >= start && idx <= end) {
+					return hint.type;
+				}
 			}
 		}
+		return null;
 	}
 </script>
 
@@ -124,8 +139,9 @@
 <div class="clue">
 	<p>
 		{#each clue.clue as letter, i (i)}
-			{#if i < highlights.length && highlights[i]}
-				<mark class={highlights[i].toLowerCase()}>{letter}</mark>
+			{@const highlight = getHighlight(i)}
+			{#if highlight}
+				<mark class={highlight.toLowerCase()}>{letter}</mark>
 			{:else}
 				{letter}
 			{/if}
@@ -137,10 +153,14 @@
 <div class={`input ${incorrect ? 'incorrect' : ''}`}>
 	<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 	{#each clue.answer as _, i (i)}
+		{@const hasHint = letterHintsUsed.includes(i)}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<div class={`letter ${selected === i ? 'selected' : ''}`} onclick={() => (selected = i)}>
-			{#if letterHintsUsed.includes(i)}
+		<div
+			class={`letter ${selected === i && !hasHint ? 'selected' : ''} ${hasHint ? 'hint' : ''}`}
+			onclick={() => (selected = i)}
+		>
+			{#if hasHint}
 				<p>{clue.answer[i].toUpperCase()}</p>
 			{:else}
 				<p>{i < input.length ? input[i] : ''}</p>
@@ -269,6 +289,10 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+	}
+
+	.letter.hint {
+		background: #60ff8a;
 	}
 
 	.letter.selected {
