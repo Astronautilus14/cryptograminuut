@@ -25,7 +25,9 @@
 	);
 
 	let incorrect = $state(false);
-	let completed = $state(false);
+	let completed = $derived(
+		browser ? localStorage.getItem(`completed-${localStorageID}`) === 'true' : false
+	);
 
 	$effect(() => {
 		const nextLength = clue?.answer?.length ?? 0;
@@ -68,12 +70,17 @@
 	});
 
 	function onCheck() {
-		const userInput = input.join('').toUpperCase();
+		// Apply letter hints to the user input before checking
+		for (const idx of letterHintsUsed) {
+			input[idx] = clue.answer[idx];
+		}
+
 		const correctAnswer = clue.answer.toUpperCase();
 
-		if (userInput === correctAnswer) {
+		if (input.join('').toUpperCase() === correctAnswer) {
 			completed = true;
 			selected = -1;
+			localStorage.setItem(`completed-${localStorageID}`, 'true');
 			confetti();
 		} else {
 			incorrect = true;
@@ -161,6 +168,8 @@
 			onclick={() => (selected = i)}
 		>
 			{#if hasHint}
+				<p>{clue.answer[i].toUpperCase()}</p>
+			{:else if completed}
 				<p>{clue.answer[i].toUpperCase()}</p>
 			{:else}
 				<p>{i < input.length ? input[i] : ''}</p>
