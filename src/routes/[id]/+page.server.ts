@@ -1,4 +1,5 @@
 import { db } from '#lib/server/db.ts';
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -9,7 +10,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	});
 
 	if (!clue) {
-		throw new Error('No clue found');
+		error(404, 'Clue not found');
 	}
 
 	const hints = await db.hint.findMany({

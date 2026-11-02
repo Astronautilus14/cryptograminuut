@@ -2,7 +2,7 @@
 	import Modal from '#lib/components/Modal.svelte';
 	import VirtualKeyboard from '#lib/components/VirtualKeyboard.svelte';
 	import confetti from '@hiseb/confetti';
-	import type { CrypticClue, Hint } from '../../../zenstack/models';
+	import type { CrypticClue, Hint, HintType } from '../../../zenstack/models';
 
 	let { clue, hints, isDaily }: { clue: CrypticClue; hints: Hint[]; isDaily: boolean } = $props();
 
@@ -16,11 +16,14 @@
 	let incorrect = $state(false);
 	let completed = $state(false);
 
+	let highlights = $state<(HintType | null)[]>([]);
+
 	$effect(() => {
 		const nextLength = clue?.answer?.length ?? 0;
 
 		if (input.length !== nextLength) {
 			input = Array.from({ length: nextLength }, (_, i) => input[i] ?? ' ');
+			highlights = Array.from({ length: nextLength }, (_, i) => highlights[i] ?? null);
 		}
 	});
 
@@ -94,6 +97,22 @@
 
 		showHints = false;
 	}
+
+	function onHint(id: string) {
+		if (hintsUsed.includes(id)) return;
+		const hint = hints.find((h) => h.id === id);
+		if (!hint) return;
+
+		hintsUsed = [...hintsUsed, id];
+
+		const ranges = hint.part.split(';');
+		for (const range of ranges) {
+			const [start, end] = range.split(',').map(Number);
+			for (let i = start; i <= end; i++) {
+				highlights[i] = hint.type;
+			}
+		}
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -103,7 +122,16 @@
 </div>
 
 <div class="clue">
-	<p>{clue.clue} ({answerLength})</p>
+	<p>
+		{#each clue.clue as letter, i (i)}
+			{#if i < highlights.length && highlights[i]}
+				<mark class={highlights[i].toLowerCase()}>{letter}</mark>
+			{:else}
+				{letter}
+			{/if}
+		{/each}
+		({answerLength})
+	</p>
 </div>
 
 <div class={`input ${incorrect ? 'incorrect' : ''}`}>
@@ -147,30 +175,34 @@
 
 <Modal bind:showModal={showHints}>
 	<div class="hints">
-		{#each hints as hint (hint.id)}
-			<div class="hint">
-				{#if !hintsUsed.includes(hint.id)}
-					<button
-						onclick={() => {
-							hintsUsed = [...hintsUsed, hint.id];
-						}}
-					>
-						{hint.name}
-					</button>
-				{:else}
+		{#if hintsUsed.length === 0}
+			<h2>Hints</h2>
+		{/if}
+
+		{#each hintsUsed as id (id)}
+			{@const hint = hints.find((h) => h.id === id)}
+			{#if hint}
+				<div class="hint">
 					<h3>{hint.name}</h3>
 					<p>{hint.text}</p>
-				{/if}
-			</div>
+				</div>
+			{/if}
 		{/each}
-		<div class="hint">
-			<button
-				onclick={onLetterHint}
-				disabled={letterHintsUsed.length >= clue.letterHintOrder.split(',').length}
-			>
-				Letter
-			</button>
-		</div>
+
+		{#each hints as hint (hint.id)}
+			{#if !hintsUsed.includes(hint.id)}
+				<button onclick={() => onHint(hint.id)}>
+					{hint.name}
+				</button>
+			{/if}
+		{/each}
+
+		<button
+			onclick={onLetterHint}
+			disabled={letterHintsUsed.length >= clue.letterHintOrder.split(',').length}
+		>
+			Letter
+		</button>
 	</div>
 </Modal>
 
@@ -297,5 +329,22 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+
+	.hints button {
+		max-width: 200px;
+	}
+
+	mark.definition,
+	mark.other {
+		background: #5ef5f5;
+	}
+
+	mark.indicator {
+		background: #ff98e2;
+	}
+
+	mark.fodder {
+		background: #60ff8a;
 	}
 </style>
