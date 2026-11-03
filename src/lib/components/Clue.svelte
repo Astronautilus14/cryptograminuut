@@ -167,9 +167,7 @@
 			class={`letter ${selected === i && !hasHint ? 'selected' : ''} ${hasHint ? 'hint' : ''}`}
 			onclick={() => (selected = i)}
 		>
-			{#if hasHint}
-				<p>{clue.answer[i].toUpperCase()}</p>
-			{:else if completed}
+			{#if hasHint || completed}
 				<p>{clue.answer[i].toUpperCase()}</p>
 			{:else}
 				<p>{i < input.length ? input[i] : ''}</p>
