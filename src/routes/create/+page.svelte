@@ -102,31 +102,12 @@
 	}
 </script>
 
+<!-- 
 <SuperDebug data={$form} />
 <pre>{highlightInputs}</pre>
-<pre>{JSON.stringify(highlightParts, null, 2)}</pre>
+<pre>{JSON.stringify(highlightParts, null, 2)}</pre> -->
 
 <form method="POST" use:enhance>
-	<h3>Puzzel maken</h3>
-
-	<div class="input">
-		<label for="author">Auteur</label>
-		<input type="text" name="author" bind:value={$form.author} />
-		{#if $errors.author}<span class="invalid">{$errors.author}</span>{/if}
-	</div>
-
-	<div class="input">
-		<label for="clue">Puzzel</label>
-		<input type="text" name="clue" disabled={stage2} bind:value={$form.clue} />
-		{#if $errors.clue}<span class="invalid">{$errors.clue}</span>{/if}
-	</div>
-
-	<div class="input">
-		<label for="answer">Antwoord</label>
-		<input type="text" name="answer" disabled={stage2} bind:value={$form.answer} />
-		{#if $errors.answer}<span class="invalid">{$errors.answer}</span>{/if}
-	</div>
-
 	{#if stage2}
 		<h3>Hints</h3>
 
@@ -146,8 +127,8 @@
 			<input type="text" name="letterHintOrder" bind:value={letterHintOrderInput} />
 		</div>
 
-		<h3>
-			{#each $form.answer as letter, i (i)}
+		<h2>
+			{#each $form.clue as letter, i (i)}
 				{@const highlight = getHighlight(i)}
 				{#if highlight}
 					<mark class={highlight.toLowerCase()}>{letter}</mark>
@@ -155,7 +136,7 @@
 					{letter}
 				{/if}
 			{/each}
-		</h3>
+		</h2>
 
 		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 		{#each $form.hints as _, i (i)}
@@ -169,7 +150,7 @@
 			<input type="text" name={`${labelPrefix} text`} bind:value={$form.hints![i].text} />
 
 			<label for={`${labelPrefix} type`}>Type</label>
-			<select name={`${labelPrefix} type`}>
+			<select name={`${labelPrefix} type`} bind:value={$form.hints![i].type}>
 				{#each Object.keys(HintType) as type (type)}
 					<option value={type}>{type}</option>
 				{/each}
@@ -180,8 +161,29 @@
 		{/each}
 
 		<button type="button" onclick={addHint}>Hint toevoegen</button>
+		<button type="submit">Opslaan</button>
 	{:else}
-		<button onclick={onNext} type="button">Next</button>
+		<h3>Puzzel maken</h3>
+
+		<div class="input">
+			<label for="author">Auteur</label>
+			<input type="text" name="author" bind:value={$form.author} />
+			{#if $errors.author}<span class="invalid">{$errors.author}</span>{/if}
+		</div>
+
+		<div class="input">
+			<label for="clue">Puzzel</label>
+			<input type="text" name="clue" bind:value={$form.clue} />
+			{#if $errors.clue}<span class="invalid">{$errors.clue}</span>{/if}
+		</div>
+
+		<div class="input">
+			<label for="answer">Antwoord</label>
+			<input type="text" name="answer" bind:value={$form.answer} />
+			{#if $errors.answer}<span class="invalid">{$errors.answer}</span>{/if}
+		</div>
+
+		<button onclick={onNext} type="button">Volgende</button>
 	{/if}
 </form>
 
@@ -243,7 +245,8 @@
 		padding: 0.1px 20px 20px 20px;
 	}
 
-	form h3 {
+	form h3,
+	form h2 {
 		margin-top: 20px;
 	}
 
