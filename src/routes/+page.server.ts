@@ -4,7 +4,11 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	let clue = await db.crypticClue.findUnique({
 		where: {
-			date: new Date(new Date().toISOString().split('T')[0])
+			date: new Date(
+				new Date().toLocaleDateString('sv-SE', {
+					timeZone: 'Europe/Amsterdam'
+				})
+			)
 		}
 	});
 
