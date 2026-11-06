@@ -5,4 +5,4 @@
 	let { data }: PageProps = $props();
 </script>
 
-<Clue clue={data.clue} hints={data.hints} isDaily={true} />
+<Clue clue={data.clue} isDaily={true} />

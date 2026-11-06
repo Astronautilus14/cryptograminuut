@@ -9,22 +9,19 @@ export const load: PageServerLoad = async () => {
 					timeZone: 'Europe/Amsterdam'
 				})
 			)
+		},
+		include: {
+			hints: true
 		}
 	});
 
 	if (!clue) {
-		clue = await db.crypticClue.findFirst();
+		clue = await db.crypticClue.findFirst({ include: { hints: true } });
 	}
 
 	if (!clue) {
 		throw new Error('No clue found');
 	}
 
-	const hints = await db.hint.findMany({
-		where: {
-			clueId: clue.id
-		}
-	});
-
-	return { clue, hints };
+	return { clue };
 };

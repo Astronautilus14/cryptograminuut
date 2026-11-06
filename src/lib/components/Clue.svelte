@@ -5,7 +5,7 @@
 	import confetti from '@hiseb/confetti';
 	import type { CrypticClue, Hint } from '../../../zenstack/models';
 
-	let { clue, hints, isDaily }: { clue: CrypticClue; hints: Hint[]; isDaily: boolean } = $props();
+	let { clue, isDaily }: { clue: CrypticClue & { hints: Hint[] }; isDaily: boolean } = $props();
 
 	let selected = $state(0);
 	let input = $state<string[]>([]);
@@ -116,7 +116,7 @@
 
 	function onHint(id: string) {
 		if (hintsUsed.includes(id)) return;
-		const hint = hints.find((h) => h.id === id);
+		const hint = clue.hints.find((h) => h.id === id);
 		if (!hint) return;
 
 		hintsUsed = [...hintsUsed, id];
@@ -124,7 +124,7 @@
 	}
 
 	function getHighlight(idx: number) {
-		for (const hint of hints) {
+		for (const hint of clue.hints) {
 			if (!hintsUsed.includes(hint.id)) continue;
 			for (const part of hint.part.split(';')) {
 				const [start, end] = part.split(',').map(Number);
@@ -181,7 +181,7 @@
 {#if completed}
 	<div class="completed">
 		<p>Hints gebruikt: {totalHintsUsed}</p>
-		{#each hints as hint (hint.id)}
+		{#each clue.hints as hint (hint.id)}
 			<div>
 				<h3>{hint.name}</h3>
 				<p>{hint.text}</p>
@@ -209,7 +209,7 @@
 		{/if}
 
 		{#each hintsUsed as id (id)}
-			{@const hint = hints.find((h) => h.id === id)}
+			{@const hint = clue.hints.find((h) => h.id === id)}
 			{#if hint}
 				<div class="hint">
 					<h3>{hint.name}</h3>
@@ -218,7 +218,7 @@
 			{/if}
 		{/each}
 
-		{#each hints as hint (hint.id)}
+		{#each clue.hints as hint (hint.id)}
 			{#if !hintsUsed.includes(hint.id)}
 				<button onclick={() => onHint(hint.id)}>
 					{hint.name}
